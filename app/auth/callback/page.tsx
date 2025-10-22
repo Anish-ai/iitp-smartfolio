@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { handleIITPCallback } from "@/lib/auth"
 import { Card } from "@/components/ui/card"
 
-export default function AuthCallbackPage() {
+function CallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<"processing" | "success" | "error">("processing")
@@ -115,5 +115,25 @@ export default function AuthCallbackPage() {
         <p className="text-muted-foreground">{message}</p>
       </Card>
     </div>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 shadow-xl text-center">
+            <div className="flex justify-center mb-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Loading...</h1>
+            <p className="text-muted-foreground">Please wait</p>
+          </Card>
+        </div>
+      }
+    >
+      <CallbackContent />
+    </Suspense>
   )
 }
