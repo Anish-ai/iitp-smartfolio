@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { EducationForm } from "@/components/education-form"
 import { EducationCard } from "@/components/education-card"
+import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
-import { createClient } from "@/lib/auth"
+import { educationApi } from "@/lib/api"
 import type { Education } from "@/lib/db"
 
 export default function EducationPage() {
@@ -18,20 +19,7 @@ export default function EducationPage() {
 
   const fetchEducations = async () => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from("education")
-        .select("*")
-        .eq("userId", user.id)
-        .order("startYear", { ascending: false })
-
-      if (error) throw error
+      const data = await educationApi.list()
       setEducations(data || [])
     } catch (error) {
       console.error("Error fetching education:", error)
@@ -41,16 +29,7 @@ export default function EducationPage() {
   const handleSubmit = async (data: any) => {
     setIsLoading(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("Not authenticated")
-
-      const { error } = await supabase.from("education").insert([{ ...data, userId: user.id }])
-
-      if (error) throw error
+      await educationApi.create(data)
       await fetchEducations()
     } catch (error) {
       console.error("Error adding education:", error)
@@ -61,22 +40,71 @@ export default function EducationPage() {
 
   const handleDelete = async (eduId: string) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("education").delete().eq("eduId", eduId)
-
-      if (error) throw error
+      await educationApi.delete(eduId)
       await fetchEducations()
     } catch (error) {
       console.error("Error deleting education:", error)
     }
   }
 
+  const handleBulkImport = async (items: any[]) => {
+    const errors: string[] = []
+    
+    for (const item of items) {
+      try {
+        await educationApi.create({
+          institute: item.institute,
+          degree: item.degree,
+          branch: item.branch,
+          startYear: item.startYear,
+          endYear: item.endYear || null,
+          cgpaOrPercentage: item.cgpaOrPercentage,
+        })
+      } catch (error: any) {
+        errors.push(`Failed to import "${item.institute}": ${error.message}`)
+      }
+    }
+    
+    await fetchEducations()
+    
+    if (errors.length > 0) {
+      throw new Error(`Imported with errors:\n${errors.join('\n')}`)
+    }
+  }
+
+  const educationExampleJson = `[
+  {
+    "institute": "Indian Institute of Technology Patna",
+    "degree": "B.Tech",
+    "branch": "Computer Science",
+    "startYear": 2021,
+    "endYear": 2025,
+    "cgpaOrPercentage": 8.5
+  },
+  {
+    "institute": "Delhi Public School",
+    "degree": "Class XII",
+    "branch": "PCM",
+    "startYear": 2019,
+    "endYear": 2021,
+    "cgpaOrPercentage": 95.5
+  }
+]`
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-4xl font-bold">Education & Academics</h1>
-          <p className="text-muted-foreground mt-2">Manage your academic history and qualifications</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold">Education</h1>
+            <p className="text-muted-foreground mt-2">Track your academic journey</p>
+          </div>
+          <BulkImportDialog
+            title="Bulk Import Education"
+            description="Import multiple education records at once using JSON format."
+            exampleJson={educationExampleJson}
+            onImport={handleBulkImport}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -99,7 +127,7 @@ export default function EducationPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
+            <Card className="p-6 bg-linear-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
               <h3 className="font-semibold mb-4">Education Tips</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>• Add all degrees and certifications</li>

@@ -22,7 +22,7 @@ export function ProfilePreview({ profile }: ProfilePreviewProps) {
     <Card className="p-8 space-y-6 hover:shadow-lg transition-shadow duration-300">
       {/* Profile Header */}
       <div className="text-center border-b border-border pb-6">
-        <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-4xl">
+        <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center text-4xl">
           {profile.photoURL ? (
             <img
               src={profile.photoURL || "/placeholder.svg"}

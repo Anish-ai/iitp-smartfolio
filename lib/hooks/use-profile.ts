@@ -1,21 +1,17 @@
 "use client"
 
 import useSWR from "swr"
-import { createClient } from "@/lib/auth"
+import { profileApi } from "@/lib/api"
 import type { Profile } from "@/lib/db"
 
-const fetcher = async (key: string) => {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const { data, error } = await supabase.from("profiles").select("*").eq("userId", user.id).single()
-
-  if (error) throw error
-  return data as Profile
+const fetcher = async () => {
+  try {
+    const data = await profileApi.get()
+    return data as Profile
+  } catch (error) {
+    console.error("Error fetching profile:", error)
+    return null
+  }
 }
 
 export function useProfile() {

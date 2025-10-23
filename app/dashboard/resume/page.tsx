@@ -6,7 +6,16 @@ import { TemplateSelect } from "@/components/resume-templates"
 import { ResumePreview } from "@/components/resume-preview"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/auth"
+import { 
+  profileApi, 
+  projectsApi, 
+  educationApi, 
+  skillsApi, 
+  achievementsApi, 
+  positionsApi, 
+  certificationsApi, 
+  coursesApi 
+} from "@/lib/api"
 import { Download, Share2, QrCode } from "lucide-react"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
@@ -40,13 +49,6 @@ export default function ResumePage() {
 
   const fetchAllData = async () => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
       const [
         profileData,
         projectsData,
@@ -57,24 +59,24 @@ export default function ResumePage() {
         certificationsData,
         coursesData,
       ] = await Promise.all([
-        supabase.from("profiles").select("*").eq("userId", user.id).single(),
-        supabase.from("projects").select("*").eq("userId", user.id),
-        supabase.from("education").select("*").eq("userId", user.id),
-        supabase.from("skills").select("*").eq("userId", user.id),
-        supabase.from("achievements").select("*").eq("userId", user.id),
-        supabase.from("positionsOfResponsibility").select("*").eq("userId", user.id),
-        supabase.from("certifications").select("*").eq("userId", user.id),
-        supabase.from("courses").select("*").eq("userId", user.id),
+        profileApi.get().catch(() => null),
+        projectsApi.list().catch(() => []),
+        educationApi.list().catch(() => []),
+        skillsApi.list().catch(() => []),
+        achievementsApi.list().catch(() => []),
+        positionsApi.list().catch(() => []),
+        certificationsApi.list().catch(() => []),
+        coursesApi.list().catch(() => []),
       ])
 
-      if (profileData.data) setProfile(profileData.data)
-      if (projectsData.data) setProjects(projectsData.data)
-      if (educationData.data) setEducation(educationData.data)
-      if (skillsData.data) setSkills(skillsData.data)
-      if (achievementsData.data) setAchievements(achievementsData.data)
-      if (positionsData.data) setPositions(positionsData.data)
-      if (certificationsData.data) setCertifications(certificationsData.data)
-      if (coursesData.data) setCourses(coursesData.data)
+      if (profileData) setProfile(profileData)
+      setProjects(projectsData)
+      setEducation(educationData)
+      setSkills(skillsData)
+      setAchievements(achievementsData)
+      setPositions(positionsData)
+      setCertifications(certificationsData)
+      setCourses(coursesData)
     } catch (error) {
       console.error("Error fetching data:", error)
     } finally {

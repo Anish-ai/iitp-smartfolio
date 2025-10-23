@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProjectForm } from "@/components/project-form"
 import { ProjectCard } from "@/components/project-card"
+import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
-import { createClient } from "@/lib/auth"
+import { projectsApi } from "@/lib/api"
 import type { Project } from "@/lib/db"
 
 export default function ProjectsPage() {
@@ -18,20 +19,7 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("userId", user.id)
-        .order("startDate", { ascending: false })
-
-      if (error) throw error
+      const data = await projectsApi.list()
       setProjects(data || [])
     } catch (error) {
       console.error("Error fetching projects:", error)
@@ -41,16 +29,7 @@ export default function ProjectsPage() {
   const handleSubmit = async (data: any) => {
     setIsLoading(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("Not authenticated")
-
-      const { error } = await supabase.from("projects").insert([{ ...data, userId: user.id }])
-
-      if (error) throw error
+      await projectsApi.create(data)
       await fetchProjects()
     } catch (error) {
       console.error("Error adding project:", error)
@@ -61,22 +40,74 @@ export default function ProjectsPage() {
 
   const handleDelete = async (projectId: string) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("projects").delete().eq("projectId", projectId)
-
-      if (error) throw error
+      await projectsApi.delete(projectId)
       await fetchProjects()
     } catch (error) {
       console.error("Error deleting project:", error)
     }
   }
 
+  const handleBulkImport = async (items: any[]) => {
+    const errors: string[] = []
+    
+    for (const item of items) {
+      try {
+        await projectsApi.create({
+          title: item.title,
+          description: item.description,
+          techStack: Array.isArray(item.techStack) ? item.techStack : [],
+          projectLink: item.projectLink || null,
+          githubRepo: item.githubRepo || null,
+          startDate: item.startDate,
+          endDate: item.endDate || null,
+        })
+      } catch (error: any) {
+        errors.push(`Failed to import "${item.title}": ${error.message}`)
+      }
+    }
+    
+    await fetchProjects()
+    
+    if (errors.length > 0) {
+      throw new Error(`Imported with errors:\n${errors.join('\n')}`)
+    }
+  }
+
+  const projectExampleJson = `[
+  {
+    "title": "Portfolio Website",
+    "description": "Personal portfolio built with Next.js and Tailwind CSS",
+    "techStack": ["Next.js", "React", "Tailwind CSS", "TypeScript"],
+    "projectLink": "https://example.com",
+    "githubRepo": "https://github.com/username/portfolio",
+    "startDate": "2024-01-15",
+    "endDate": "2024-03-20"
+  },
+  {
+    "title": "E-commerce Platform",
+    "description": "Full-stack online store with payment integration",
+    "techStack": ["Node.js", "Express", "MongoDB", "React"],
+    "projectLink": "https://store.example.com",
+    "githubRepo": "https://github.com/username/ecommerce",
+    "startDate": "2024-06-01",
+    "endDate": null
+  }
+]`
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-4xl font-bold">Projects & Research</h1>
-          <p className="text-muted-foreground mt-2">Showcase your technical work and achievements</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold">Projects & Research</h1>
+            <p className="text-muted-foreground mt-2">Showcase your technical work and achievements</p>
+          </div>
+          <BulkImportDialog
+            title="Bulk Import Projects"
+            description="Import multiple projects at once using JSON format. All fields like title, description, techStack (array), dates are supported."
+            exampleJson={projectExampleJson}
+            onImport={handleBulkImport}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -101,7 +132,7 @@ export default function ProjectsPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
+            <Card className="p-6 bg-linear-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
               <h3 className="font-semibold mb-4">Project Tips</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>• Include links to live projects and GitHub repos</li>

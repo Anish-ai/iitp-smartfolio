@@ -5,7 +5,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProfileForm } from "@/components/profile-form"
 import { ProfilePreview } from "@/components/profile-preview"
 import { useProfile } from "@/lib/hooks/use-profile"
-import { createClient } from "@/lib/auth"
+import { profileApi } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 
 export default function ProfilePage() {
@@ -15,17 +15,7 @@ export default function ProfilePage() {
   const handleSubmit = async (data: any) => {
     setIsSaving(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("Not authenticated")
-
-      const { error } = await supabase.from("profiles").update(data).eq("userId", user.id)
-
-      if (error) throw error
-
+      await profileApi.update(data)
       await mutate()
     } catch (error) {
       console.error("Error updating profile:", error)
@@ -52,7 +42,7 @@ export default function ProfilePage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : (
-                <ProfileForm profile={profile} onSubmit={handleSubmit} isLoading={isSaving} />
+                <ProfileForm profile={profile ?? undefined} onSubmit={handleSubmit} isLoading={isSaving} />
               )}
             </Card>
           </div>
@@ -61,7 +51,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <h2 className="text-lg font-semibold mb-4">Preview</h2>
-              <ProfilePreview profile={profile} />
+              <ProfilePreview profile={profile ?? undefined} />
             </div>
           </div>
         </div>

@@ -4,10 +4,11 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createClient } from "@/lib/auth"
+import { coursesApi } from "@/lib/api"
 import type { Course } from "@/lib/db"
 import { Trash2, ExternalLink } from "lucide-react"
 
@@ -16,7 +17,7 @@ export function CoursesPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
-    provider: "",
+    provider: "IIT Patna",
     certificateLink: "",
     completionDate: "",
   })
@@ -27,20 +28,7 @@ export function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("userId", user.id)
-        .order("completionDate", { ascending: false })
-
-      if (error) throw error
+      const data = await coursesApi.list()
       setCourses(data || [])
     } catch (error) {
       console.error("Error fetching courses:", error)
@@ -56,17 +44,13 @@ export function CoursesPage() {
     e.preventDefault()
     setIsLoading(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("Not authenticated")
-
-      const { error } = await supabase.from("courses").insert([{ ...formData, userId: user.id }])
-
-      if (error) throw error
-      setFormData({ title: "", provider: "", certificateLink: "", completionDate: "" })
+      // Use "IIT Patna" as default if provider field is empty
+      const courseData = {
+        ...formData,
+        provider: formData.provider.trim() || "IIT Patna"
+      }
+      await coursesApi.create(courseData)
+      setFormData({ title: "", provider: "IIT Patna", certificateLink: "", completionDate: "" })
       await fetchCourses()
     } catch (error) {
       console.error("Error adding course:", error)
@@ -77,22 +61,65 @@ export function CoursesPage() {
 
   const handleDelete = async (courseId: string) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("courses").delete().eq("courseId", courseId)
-
-      if (error) throw error
+      await coursesApi.delete(courseId)
       await fetchCourses()
     } catch (error) {
       console.error("Error deleting course:", error)
     }
   }
 
+  const handleBulkImport = async (items: any[]) => {
+    const errors: string[] = []
+    
+    for (const item of items) {
+      try {
+        await coursesApi.create({
+          title: item.title,
+          provider: item.provider || "IIT Patna",
+          certificateLink: item.certificateLink || null,
+          completionDate: item.completionDate,
+        })
+      } catch (error: any) {
+        errors.push(`Failed to import "${item.title}": ${error.message}`)
+      }
+    }
+    
+    await fetchCourses()
+    
+    if (errors.length > 0) {
+      throw new Error(`Imported with errors:\n${errors.join('\n')}`)
+    }
+  }
+
+  const coursesExampleJson = `[
+  {
+    "title": "Machine Learning Fundamentals",
+    "provider": "IIT Patna",
+    "certificateLink": "https://certificate.example.com/123",
+    "completionDate": "2024-06-15"
+  },
+  {
+    "title": "Advanced React Patterns",
+    "provider": "Udemy",
+    "certificateLink": "https://udemy.com/cert/456",
+    "completionDate": "2024-08-20"
+  }
+]`
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-4xl font-bold">Courses & Certifications</h1>
-          <p className="text-muted-foreground mt-2">Track your online courses and certifications</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold">Courses & Certifications</h1>
+            <p className="text-muted-foreground mt-2">Track your online courses and certifications</p>
+          </div>
+          <BulkImportDialog
+            title="Bulk Import Courses"
+            description="Import multiple courses at once. Provider defaults to 'IIT Patna' if not specified."
+            exampleJson={coursesExampleJson}
+            onImport={handleBulkImport}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -119,9 +146,9 @@ export function CoursesPage() {
                       name="provider"
                       value={formData.provider}
                       onChange={handleChange}
-                      placeholder="e.g., Udemy, Coursera"
-                      required
+                      placeholder="IIT Patna (default)"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Leave as "IIT Patna" or change to other providers (Udemy, Coursera, etc.)</p>
                   </div>
                 </div>
 
@@ -195,7 +222,7 @@ export function CoursesPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
+            <Card className="p-6 bg-linear-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
               <h3 className="font-semibold mb-4">Course Tips</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>• Add courses from platforms like Udemy, Coursera, edX</li>

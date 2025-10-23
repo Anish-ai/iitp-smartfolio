@@ -149,7 +149,7 @@ export default function LandingPage() {
                   "Certifications & Courses"
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -179,7 +179,7 @@ export default function LandingPage() {
                   "Print-ready formats"
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
                     <span>{item}</span>
                   </li>
                 ))}

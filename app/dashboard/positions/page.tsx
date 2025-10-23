@@ -4,10 +4,11 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createClient } from "@/lib/auth"
+import { positionsApi } from "@/lib/api"
 import type { PositionOfResponsibility } from "@/lib/db"
 import { Trash2 } from "lucide-react"
 
@@ -28,20 +29,7 @@ export default function PositionsPage() {
 
   const fetchPositions = async () => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from("positionsOfResponsibility")
-        .select("*")
-        .eq("userId", user.id)
-        .order("startDate", { ascending: false })
-
-      if (error) throw error
+      const data = await positionsApi.list()
       setPositions(data || [])
     } catch (error) {
       console.error("Error fetching positions:", error)
@@ -57,16 +45,7 @@ export default function PositionsPage() {
     e.preventDefault()
     setIsLoading(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("Not authenticated")
-
-      const { error } = await supabase.from("positionsOfResponsibility").insert([{ ...formData, userId: user.id }])
-
-      if (error) throw error
+      await positionsApi.create(formData)
       setFormData({ title: "", organization: "", description: "", startDate: "", endDate: "" })
       await fetchPositions()
     } catch (error) {
@@ -78,22 +57,68 @@ export default function PositionsPage() {
 
   const handleDelete = async (posId: string) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("positionsOfResponsibility").delete().eq("posId", posId)
-
-      if (error) throw error
+      await positionsApi.delete(posId)
       await fetchPositions()
     } catch (error) {
       console.error("Error deleting position:", error)
     }
   }
 
+  const handleBulkImport = async (items: any[]) => {
+    const errors: string[] = []
+    
+    for (const item of items) {
+      try {
+        await positionsApi.create({
+          title: item.title,
+          organization: item.organization,
+          description: item.description || null,
+          startDate: item.startDate,
+          endDate: item.endDate || null,
+        })
+      } catch (error: any) {
+        errors.push(`Failed to import "${item.title}": ${error.message}`)
+      }
+    }
+    
+    await fetchPositions()
+    
+    if (errors.length > 0) {
+      throw new Error(`Imported with errors:\n${errors.join('\n')}`)
+    }
+  }
+
+  const positionsExampleJson = `[
+  {
+    "title": "Technical Secretary",
+    "organization": "Robotics Club, IIT Patna",
+    "description": "Led team of 20 students, organized 5 workshops",
+    "startDate": "2023-08-01",
+    "endDate": "2024-07-31"
+  },
+  {
+    "title": "Core Team Member",
+    "organization": "Entrepreneurship Cell",
+    "description": "Organized startup events and mentorship programs",
+    "startDate": "2024-01-15",
+    "endDate": null
+  }
+]`
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-4xl font-bold">Positions of Responsibility</h1>
-          <p className="text-muted-foreground mt-2">Showcase your leadership roles and responsibilities</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold">Positions of Responsibility</h1>
+            <p className="text-muted-foreground mt-2">Document your leadership roles and responsibilities</p>
+          </div>
+          <BulkImportDialog
+            title="Bulk Import Positions"
+            description="Import multiple positions at once. endDate can be null for ongoing positions."
+            exampleJson={positionsExampleJson}
+            onImport={handleBulkImport}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -194,7 +219,7 @@ export default function PositionsPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
+            <Card className="p-6 bg-linear-to-br from-primary/5 to-accent/5 border-primary/20 sticky top-8">
               <h3 className="font-semibold mb-4">Position Ideas</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Club President/Vice President</li>

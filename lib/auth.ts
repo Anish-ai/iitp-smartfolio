@@ -193,8 +193,11 @@ export function handleIITPCallback(token: string): AuthUser | null {
     
     const payload = JSON.parse(atob(parts[1]))
     
+    // Use rollNumber as primary ID (same as backend middleware)
+    const userId = payload.rollNumber || payload.userId || payload.id || payload.sub || payload.email
+    
     const user: AuthUser = {
-      id: payload.rollNumber || payload.email || genId(),
+      id: userId,
       email: payload.email,
       name: payload.name || payload.email.split('@')[0],
       rollNumber: payload.rollNumber,

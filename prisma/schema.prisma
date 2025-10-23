@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User Profile - Primary user information from IITP Auth Gateway
+model Profile {
+  userId           String   @id @default(uuid())
+  email            String   @unique
+  name             String
+  rollNumber       String?  // From IITP email (e.g., 2101CS01)
+  admissionYear    Int?     // From IITP email
+  degree           String?  // B.Tech, M.Tech, Dual Degree, PhD
+  branch           String?  // CS, MC, EE, EC, ME, CE, CH, MM, AI, DS
+  phone            String?
+  portfolioWebsite String?
+  githubLink       String?
+  linkedinLink     String?
+  photoURL         String?
+  verified         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  projects       Project[]
+  education      Education[]
+  courses        Course[]
+  achievements   Achievement[]
+  skills         Skill[]
+  positions      PositionOfResponsibility[]
+  certifications Certification[]
+
+  @@index([email])
+  @@index([rollNumber])
+}
+
+// Projects - Technical projects and research work
+model Project {
+  projectId   String    @id @default(uuid())
+  userId      String
+  title       String
+  description String    @db.Text
+  techStack   String[] // Array of technologies
+  projectLink String?
+  githubRepo  String?
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startDate])
+}
+
+// Education - Academic records
+model Education {
+  eduId            String   @id @default(uuid())
+  userId           String
+  institute        String // Default: "Indian Institute of Technology Patna"
+  degree           String // B.Tech, M.Tech, Dual Degree, PhD
+  branch           String // CS, MC, EE, EC, ME, CE, CH, MM, AI, DS
+  startYear        Int
+  endYear          Int?
+  cgpaOrPercentage Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startYear])
+}
+
+// Courses - Online courses and MOOCs
+model Course {
+  courseId        String   @id @default(uuid())
+  userId          String
+  title           String
+  provider        String // Udemy, Coursera, edX, NPTEL, etc.
+  certificateLink String?
+  completionDate  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([completionDate])
+}
+
+// Achievements - Awards and recognitions
+model Achievement {
+  achievementId String   @id @default(uuid())
+  userId        String
+  title         String
+  description   String   @db.Text
+  date          DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
+
+// Skills - Technical and soft skills grouped by category
+model Skill {
+  skillId   String   @id @default(uuid())
+  userId    String
+  category  String // "Development", "Databases", "AI/ML", "Tools", "Soft Skills"
+  skills    Json // [{ name: "React", level: "Intermediate" }, ...]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+}
+
+// Positions of Responsibility - Leadership roles
+model PositionOfResponsibility {
+  posId        String    @id @default(uuid())
+  userId       String
+  title        String
+  organization String
+  description  String?   @db.Text
+  startDate    DateTime
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startDate])
+}
+
+// Certifications - Professional certifications
+model Certification {
+  certId          String   @id @default(uuid())
+  userId          String
+  title           String
+  description     String?  @db.Text
+  issuer          String
+  issueDate       DateTime
+  certificateLink String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([issueDate])
+}
