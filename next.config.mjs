@@ -9,6 +9,17 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Ensure Prisma client is bundled correctly for serverless
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma']
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Exclude Prisma engines from webpack bundling
+      config.externals.push('_http_common')
+    }
+    return config
+  }
 }
 
 export default nextConfig
