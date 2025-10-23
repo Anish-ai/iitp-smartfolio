@@ -13,13 +13,8 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'prisma']
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Exclude Prisma engines from webpack bundling
-      config.externals.push('_http_common')
-    }
-    return config
-  }
+  // Empty turbopack config to silence warning
+  turbopack: {}
 }
 
 export default nextConfig
