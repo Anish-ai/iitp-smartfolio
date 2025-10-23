@@ -12,6 +12,13 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
+// Test database connection on startup (helps debug Vercel issues)
+if (process.env.NODE_ENV === 'production') {
+  prisma.$connect()
+    .then(() => console.log('✅ Database connected successfully'))
+    .catch((error: any) => console.error('❌ Database connection failed:', error))
+}
+
 // Domain types for the application
 export type Profile = {
   userId: string
