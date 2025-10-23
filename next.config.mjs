@@ -9,10 +9,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/**/*': ['./node_modules/.prisma/client/**/*'],
-    },
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./node_modules/.prisma/client/**/*'],
   },
   // Ensure Prisma client is bundled correctly for serverless (moved from experimental in Next 16)
   serverExternalPackages: ['@prisma/client', '@prisma/engines', 'prisma'],
