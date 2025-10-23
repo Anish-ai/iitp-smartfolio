@@ -1,5 +1,8 @@
 {
-  "buildCommand": "prisma generate && next build",
-  "installCommand": "npm install",
-  "framework": "nextjs"
+  "buildCommand": "npm run vercel-build",
+  "framework": "nextjs",
+  "env": {
+    "PRISMA_QUERY_ENGINE_LIBRARY": "/vercel/path0/node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node",
+    "PRISMA_CLI_BINARY_TARGETS": "rhel-openssl-3.0.x"
+  }
 }

@@ -8,7 +8,7 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "postinstall": "prisma generate"
+    "postinstall": "echo 'Running prisma generate...' && prisma generate && echo 'Prisma generate completed'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
