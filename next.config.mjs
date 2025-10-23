@@ -9,10 +9,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Ensure Prisma client is bundled correctly for serverless
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma']
-  },
+  // Ensure Prisma client is bundled correctly for serverless (moved from experimental in Next 16)
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   // Empty turbopack config to silence warning
   turbopack: {}
 }
