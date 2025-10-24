@@ -4,13 +4,14 @@ import { withAuth, unauthorizedResponse, serverErrorResponse, forbiddenResponse 
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const auth = await withAuth(request)
     if (!auth.authenticated) return unauthorizedResponse(auth.error)
 
-    const skill = await prisma.skill.findUnique({ where: { skillId: params.id } })
+    const skill = await prisma.skill.findUnique({ where: { skillId: id } })
     if (!skill) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (skill.userId !== auth.userId) return forbiddenResponse()
 
@@ -23,19 +24,20 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const auth = await withAuth(request)
     if (!auth.authenticated) return unauthorizedResponse(auth.error)
 
-    const existing = await prisma.skill.findUnique({ where: { skillId: params.id } })
+    const existing = await prisma.skill.findUnique({ where: { skillId: id } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (existing.userId !== auth.userId) return forbiddenResponse()
 
     const body = await request.json()
     
-    console.log('Updating skill:', params.id, 'with data:', JSON.stringify(body))
+    console.log('Updating skill:', id, 'with data:', JSON.stringify(body))
     
     // Only allow updating category and skills fields
     const updateData: { category?: string; skills?: any } = {}
@@ -43,7 +45,7 @@ export async function PUT(
     if (body.skills !== undefined) updateData.skills = body.skills
 
     const skill = await prisma.skill.update({ 
-      where: { skillId: params.id }, 
+      where: { skillId: id }, 
       data: updateData 
     })
     
@@ -56,17 +58,18 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const auth = await withAuth(request)
     if (!auth.authenticated) return unauthorizedResponse(auth.error)
 
-    const existing = await prisma.skill.findUnique({ where: { skillId: params.id } })
+    const existing = await prisma.skill.findUnique({ where: { skillId: id } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (existing.userId !== auth.userId) return forbiddenResponse()
 
-    await prisma.skill.delete({ where: { skillId: params.id } })
+    await prisma.skill.delete({ where: { skillId: id } })
     return NextResponse.json({ message: 'Deleted successfully' })
   } catch (error) {
     console.error('Error deleting skill:', error)
