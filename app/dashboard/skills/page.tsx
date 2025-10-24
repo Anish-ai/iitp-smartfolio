@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { SkillsForm } from "@/components/skills-form"
 import { SkillsDisplay } from "@/components/skills-display"
+import { SkillEditDialog } from "@/components/skill-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { skillsApi } from "@/lib/api"
@@ -12,6 +13,8 @@ import type { Skill } from "@/lib/db"
 export default function SkillsPage() {
   const [skills, setSkills] = useState<Skill[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchSkills()
@@ -44,6 +47,27 @@ export default function SkillsPage() {
       await fetchSkills()
     } catch (error) {
       console.error("Error deleting skills:", error)
+    }
+  }
+
+  const handleEdit = (skill: Skill) => {
+    setEditingSkill(skill)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdateSkills = async (skillId: string, updatedSkills: Array<{ name: string; level: string }>) => {
+    try {
+      if (updatedSkills.length === 0) {
+        // If no skills left, delete the category
+        await skillsApi.delete(skillId)
+      } else {
+        // Update the skills
+        await skillsApi.update(skillId, { skills: updatedSkills })
+      }
+      await fetchSkills()
+    } catch (error) {
+      console.error("Error updating skills:", error)
+      throw error
     }
   }
 
@@ -107,7 +131,7 @@ export default function SkillsPage() {
           <div className="lg:col-span-2">
             <Card className="p-6 mb-8">
               <h2 className="text-xl font-semibold mb-6">Add Skill Category</h2>
-              <SkillsForm onSubmit={handleSubmit} isLoading={isLoading} />
+              <SkillsForm onSubmit={handleSubmit} isLoading={isLoading} existingSkills={skills} />
             </Card>
 
             <div className="space-y-4">
@@ -117,7 +141,7 @@ export default function SkillsPage() {
                   <p>No skills added yet. Start by adding your first skill category!</p>
                 </Card>
               ) : (
-                <SkillsDisplay skills={skills} onDelete={handleDelete} />
+                <SkillsDisplay skills={skills} onDelete={handleDelete} onEdit={handleEdit} />
               )}
             </div>
           </div>
@@ -137,6 +161,16 @@ export default function SkillsPage() {
             </Card>
           </div>
         </div>
+
+        <SkillEditDialog
+          skill={editingSkill}
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setEditingSkill(null)
+          }}
+          onSave={handleUpdateSkills}
+        />
       </div>
     </DashboardLayout>
   )

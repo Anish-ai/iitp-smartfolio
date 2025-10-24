@@ -2,26 +2,47 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { X } from "lucide-react"
+import type { Skill } from "@/lib/db"
 
 interface SkillsFormProps {
   onSubmit: (data: any) => Promise<void>
   isLoading?: boolean
+  existingSkills?: Skill[]
 }
 
-export function SkillsForm({ onSubmit, isLoading }: SkillsFormProps) {
+export function SkillsForm({ onSubmit, isLoading, existingSkills = [] }: SkillsFormProps) {
   const [formData, setFormData] = useState({
     category: "",
     skills: [] as Array<{ name: string; level: string }>,
   })
   const [skillInput, setSkillInput] = useState("")
   const [levelInput, setLevelInput] = useState("Intermediate")
+  const [isNewCategory, setIsNewCategory] = useState(true)
+  const [selectedExistingCategory, setSelectedExistingCategory] = useState("")
+
+  const existingCategories = existingSkills.map(s => s.category)
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, category: e.target.value }))
+    setIsNewCategory(true)
+    setSelectedExistingCategory("")
+  }
+
+  const handleExistingCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const category = e.target.value
+    if (category) {
+      setSelectedExistingCategory(category)
+      setFormData((prev) => ({ ...prev, category }))
+      setIsNewCategory(false)
+    } else {
+      setSelectedExistingCategory("")
+      setFormData((prev) => ({ ...prev, category: "" }))
+      setIsNewCategory(true)
+    }
   }
 
   const addSkill = () => {
@@ -51,15 +72,39 @@ export function SkillsForm({ onSubmit, isLoading }: SkillsFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
+      <div className="space-y-3">
         <label className="block text-sm font-medium mb-2">Skill Category</label>
-        <Input
-          type="text"
-          value={formData.category}
-          onChange={handleCategoryChange}
-          placeholder="e.g., Frontend Development, Databases"
-          required
-        />
+        
+        {existingCategories.length > 0 && (
+          <div>
+            <select
+              value={selectedExistingCategory}
+              onChange={handleExistingCategorySelect}
+              className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">-- Select existing category or create new --</option>
+              {existingCategories.map((cat, idx) => (
+                <option key={idx} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {isNewCategory && (
+          <Input
+            type="text"
+            value={formData.category}
+            onChange={handleCategoryChange}
+            placeholder="e.g., Frontend Development, Databases"
+            required
+          />
+        )}
+        
+        {!isNewCategory && selectedExistingCategory && (
+          <p className="text-sm text-muted-foreground">
+            Adding skills to: <strong>{selectedExistingCategory}</strong>
+          </p>
+        )}
       </div>
 
       <div>

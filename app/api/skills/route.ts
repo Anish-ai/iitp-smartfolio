@@ -29,6 +29,26 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Missing required fields')
     }
 
+    // Check if a skill category with this name already exists for this user
+    const existingSkill = await prisma.skill.findFirst({
+      where: {
+        userId: auth.userId!,
+        category: body.category,
+      },
+    })
+
+    if (existingSkill) {
+      // Merge new skills with existing skills
+      const updatedSkill = await prisma.skill.update({
+        where: { skillId: existingSkill.skillId },
+        data: {
+          skills: [...existingSkill.skills, ...body.skills],
+        },
+      })
+      return NextResponse.json(updatedSkill, { status: 200 })
+    }
+
+    // Create new category
     const skill = await prisma.skill.create({
       data: {
         userId: auth.userId!,
