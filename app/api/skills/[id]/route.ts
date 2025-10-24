@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { withAuth, unauthorizedResponse, serverErrorResponse, forbiddenResponse } from '@/lib/auth-middleware'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const auth = await withAuth(request)
     if (!auth.authenticated) return unauthorizedResponse(auth.error)
@@ -13,11 +16,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json(skill)
   } catch (error) {
-    return serverErrorResponse()
+    console.error('Error fetching skill:', error)
+    return serverErrorResponse('Failed to fetch skill')
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const auth = await withAuth(request)
     if (!auth.authenticated) return unauthorizedResponse(auth.error)
@@ -28,8 +35,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const body = await request.json()
     
+    console.log('Updating skill:', params.id, 'with data:', JSON.stringify(body))
+    
     // Only allow updating category and skills fields
-    const updateData: { category?: string; skills?: Array<{ name: string; level: string }> } = {}
+    const updateData: { category?: string; skills?: any } = {}
     if (body.category !== undefined) updateData.category = body.category
     if (body.skills !== undefined) updateData.skills = body.skills
 
@@ -45,7 +54,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const auth = await withAuth(request)
     if (!auth.authenticated) return unauthorizedResponse(auth.error)
@@ -57,6 +69,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     await prisma.skill.delete({ where: { skillId: params.id } })
     return NextResponse.json({ message: 'Deleted successfully' })
   } catch (error) {
-    return serverErrorResponse()
+    console.error('Error deleting skill:', error)
+    return serverErrorResponse('Failed to delete skill')
   }
 }
