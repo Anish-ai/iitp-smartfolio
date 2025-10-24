@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { X } from "lucide-react"
@@ -18,17 +18,15 @@ export function SkillEditDialog({ skill, open, onClose, onSave }: SkillEditDialo
   const [editedSkills, setEditedSkills] = useState<Array<{ name: string; level: string }>>([])
   const [isSaving, setIsSaving] = useState(false)
 
-  // Initialize edited skills when dialog opens
-  useState(() => {
-    if (skill) {
+  // Initialize edited skills when skill or open changes
+  useEffect(() => {
+    if (open && skill) {
       setEditedSkills([...skill.skills])
     }
-  })
+  }, [open, skill])
 
   const handleOpen = (isOpen: boolean) => {
-    if (isOpen && skill) {
-      setEditedSkills([...skill.skills])
-    } else {
+    if (!isOpen) {
       onClose()
     }
   }
@@ -63,7 +61,10 @@ export function SkillEditDialog({ skill, open, onClose, onSave }: SkillEditDialo
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Skills: {skill.category}</DialogTitle>
+          <DialogTitle>Edit Skills: {skill?.category}</DialogTitle>
+          <DialogDescription>
+            Modify skill names and levels, or remove skills from this category.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-4">
