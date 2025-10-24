@@ -27,12 +27,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (existing.userId !== auth.userId) return forbiddenResponse()
 
     const body = await request.json()
-    const { skillId, userId, createdAt, ...updateData } = body
+    
+    // Only allow updating category and skills fields
+    const updateData: { category?: string; skills?: Array<{ name: string; level: string }> } = {}
+    if (body.category !== undefined) updateData.category = body.category
+    if (body.skills !== undefined) updateData.skills = body.skills
 
-    const skill = await prisma.skill.update({ where: { skillId: params.id }, data: updateData })
+    const skill = await prisma.skill.update({ 
+      where: { skillId: params.id }, 
+      data: updateData 
+    })
+    
     return NextResponse.json(skill)
   } catch (error) {
-    return serverErrorResponse()
+    console.error('Error updating skill:', error)
+    return serverErrorResponse('Failed to update skill')
   }
 }
 
