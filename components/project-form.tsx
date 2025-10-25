@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import { X } from "lucide-react"
 
@@ -147,7 +148,7 @@ export function ProjectForm({ onSubmit, isLoading }: ProjectFormProps) {
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-        {isLoading ? "Adding..." : "Add Project"}
+        {isLoading ? <><Spinner className="mr-2" /> Adding...</> : "Add Project"}
       </Button>
     </form>
   )

@@ -36,15 +36,26 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Missing required fields')
     }
 
+    // Convert numeric fields from strings to numbers
+    const cgpaOrPercentage = typeof body.cgpaOrPercentage === 'string' 
+      ? parseFloat(body.cgpaOrPercentage) 
+      : body.cgpaOrPercentage
+    const startYear = typeof body.startYear === 'string' 
+      ? parseInt(body.startYear, 10) 
+      : body.startYear
+    const endYear = body.endYear 
+      ? (typeof body.endYear === 'string' ? parseInt(body.endYear, 10) : body.endYear)
+      : null
+
     const education = await prisma.education.create({
       data: {
         userId: auth.userId!,
         institute: body.institute,
         degree: body.degree,
         branch: body.branch,
-        startYear: body.startYear,
-        endYear: body.endYear,
-        cgpaOrPercentage: body.cgpaOrPercentage,
+        startYear,
+        endYear,
+        cgpaOrPercentage,
       },
     })
 

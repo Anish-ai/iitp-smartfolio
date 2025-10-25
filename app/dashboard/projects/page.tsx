@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProjectForm } from "@/components/project-form"
 import { ProjectCard } from "@/components/project-card"
+import { ProjectEditDialog } from "@/components/project-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { projectsApi } from "@/lib/api"
@@ -12,6 +13,9 @@ import type { Project } from "@/lib/db"
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchProjects()
@@ -39,11 +43,29 @@ export default function ProjectsPage() {
   }
 
   const handleDelete = async (projectId: string) => {
+    setDeletingId(projectId)
     try {
       await projectsApi.delete(projectId)
       await fetchProjects()
     } catch (error) {
       console.error("Error deleting project:", error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleEdit = (project: Project) => {
+    setEditingProject(project)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async (projectId: string, data: any) => {
+    try {
+      await projectsApi.update(projectId, data)
+      await fetchProjects()
+    } catch (error) {
+      console.error("Error updating project:", error)
+      throw error
     }
   }
 
@@ -125,7 +147,13 @@ export default function ProjectsPage() {
                 </Card>
               ) : (
                 projects.map((project) => (
-                  <ProjectCard key={project.projectId} project={project} onDelete={handleDelete} />
+                  <ProjectCard
+                    key={project.projectId}
+                    project={project}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                    isDeleting={deletingId === project.projectId}
+                  />
                 ))
               )}
             </div>
@@ -144,6 +172,16 @@ export default function ProjectsPage() {
             </Card>
           </div>
         </div>
+
+        <ProjectEditDialog
+          project={editingProject}
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setEditingProject(null)
+          }}
+          onSave={handleUpdate}
+        />
       </div>
     </DashboardLayout>
   )

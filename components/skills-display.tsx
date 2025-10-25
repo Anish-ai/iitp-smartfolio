@@ -5,10 +5,13 @@ import { Badge } from "@/components/ui/badge"
 import type { Skill } from "@/lib/db"
 import { Trash2, Edit } from "lucide-react"
 
+import { Spinner } from "@/components/ui/spinner"
+
 interface SkillsDisplayProps {
   skills: Skill[]
   onDelete?: (id: string) => void
   onEdit?: (skill: Skill) => void
+  deletingId?: string | null
 }
 
 const levelColors = {
@@ -18,7 +21,7 @@ const levelColors = {
   Expert: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 }
 
-export function SkillsDisplay({ skills, onDelete, onEdit }: SkillsDisplayProps) {
+export function SkillsDisplay({ skills, onDelete, onEdit, deletingId }: SkillsDisplayProps) {
   return (
     <div className="space-y-4">
       {skills.map((skillGroup) => (
@@ -38,10 +41,11 @@ export function SkillsDisplay({ skills, onDelete, onEdit }: SkillsDisplayProps) 
               {onDelete && (
                 <button
                   onClick={() => onDelete(skillGroup.skillId)}
-                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex items-center justify-center min-w-[32px] min-h-[32px]"
                   title="Delete category"
+                  disabled={deletingId === skillGroup.skillId}
                 >
-                  <Trash2 size={18} className="text-destructive" />
+                  {deletingId === skillGroup.skillId ? <Spinner className="text-destructive" /> : <Trash2 size={18} className="text-destructive" />}
                 </button>
               )}
             </div>

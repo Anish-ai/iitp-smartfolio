@@ -2,14 +2,17 @@
 
 import { Card } from "@/components/ui/card"
 import type { Achievement } from "@/lib/db"
-import { Trash2, Trophy } from "lucide-react"
+import { Trash2, Trophy, Edit } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 
 interface AchievementCardProps {
-  achievement: Achievement
-  onDelete?: (id: string) => void
+  achievement: Achievement;
+  onDelete?: (id: string) => void;
+  onEdit?: (achievement: Achievement) => void;
+  isDeleting?: boolean;
 }
 
-export function AchievementCard({ achievement, onDelete }: AchievementCardProps) {
+export function AchievementCard({ achievement, onDelete, onEdit, isDeleting }: AchievementCardProps) {
   const date = new Date(achievement.date).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
@@ -25,14 +28,27 @@ export function AchievementCard({ achievement, onDelete }: AchievementCardProps)
             <p className="text-sm text-muted-foreground">{date}</p>
           </div>
         </div>
-        {onDelete && (
-          <button
-            onClick={() => onDelete(achievement.achievementId)}
-            className="p-2 hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <Trash2 size={18} className="text-destructive" />
-          </button>
-        )}
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(achievement)}
+              className="p-2 hover:bg-primary/10 rounded-lg transition-colors"
+              title="Edit achievement"
+            >
+              <Edit size={18} className="text-primary" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(achievement.achievementId)}
+              className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+              title="Delete achievement"
+              disabled={!!isDeleting}
+            >
+              {isDeleting ? <Spinner className="text-destructive" /> : <Trash2 size={18} className="text-destructive" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {achievement.description && <p className="text-sm text-foreground/80">{achievement.description}</p>}

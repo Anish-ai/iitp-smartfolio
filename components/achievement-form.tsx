@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 
 interface AchievementFormProps {
@@ -61,7 +62,7 @@ export function AchievementForm({ onSubmit, isLoading }: AchievementFormProps) {
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-        {isLoading ? "Adding..." : "Add Achievement"}
+        {isLoading ? <><Spinner className="mr-2" /> Adding...</> : "Add Achievement"}
       </Button>
     </form>
   )

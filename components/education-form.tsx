@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 
 interface EducationFormProps {
@@ -127,7 +128,7 @@ export function EducationForm({ onSubmit, isLoading }: EducationFormProps) {
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-        {isLoading ? "Adding..." : "Add Education"}
+        {isLoading ? <><Spinner className="mr-2" /> Adding...</> : "Add Education"}
       </Button>
     </form>
   )

@@ -4,17 +4,22 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { CourseEditDialog } from "@/components/course-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { coursesApi } from "@/lib/api"
 import type { Course } from "@/lib/db"
-import { Trash2, ExternalLink } from "lucide-react"
+import { Trash2, ExternalLink, Edit } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 
 export function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     provider: "IIT Patna",
@@ -60,11 +65,29 @@ export function CoursesPage() {
   }
 
   const handleDelete = async (courseId: string) => {
+    setDeletingId(courseId)
     try {
       await coursesApi.delete(courseId)
       await fetchCourses()
     } catch (error) {
       console.error("Error deleting course:", error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleEdit = (course: Course) => {
+    setEditingCourse(course)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async (courseId: string, data: any) => {
+    try {
+      await coursesApi.update(courseId, data)
+      await fetchCourses()
+    } catch (error) {
+      console.error("Error updating course:", error)
+      throw error
     }
   }
 
@@ -195,12 +218,23 @@ export function CoursesPage() {
                         <h3 className="text-lg font-semibold">{course.title}</h3>
                         <p className="text-sm text-muted-foreground">{course.provider}</p>
                       </div>
-                      <button
-                        onClick={() => handleDelete(course.courseId)}
-                        className="p-2 hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 size={18} className="text-destructive" />
-                      </button>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEdit(course)}
+                          className="p-2 hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Edit course"
+                        >
+                          <Edit size={18} className="text-primary" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(course.courseId)}
+                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                          title="Delete course"
+                          disabled={deletingId === course.courseId}
+                        >
+                          {deletingId === course.courseId ? <Spinner className="text-destructive" /> : <Trash2 size={18} className="text-destructive" />}
+                        </button>
+                      </div>
                     </div>
                     <p className="text-sm text-foreground/70 mb-3">
                       {new Date(course.completionDate).toLocaleDateString("en-US", {
@@ -234,6 +268,16 @@ export function CoursesPage() {
             </Card>
           </div>
         </div>
+
+        <CourseEditDialog
+          course={editingCourse}
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setEditingCourse(null)
+          }}
+          onSave={handleUpdate}
+        />
       </div>
     </DashboardLayout>
   )

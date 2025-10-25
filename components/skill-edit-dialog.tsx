@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import { X } from "lucide-react"
 import type { Skill } from "@/lib/db"
@@ -108,7 +109,7 @@ export function SkillEditDialog({ skill, open, onClose, onSave }: SkillEditDialo
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save Changes"}
+            {isSaving ? <><Spinner className="mr-2" /> Saving...</> : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

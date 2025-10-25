@@ -4,17 +4,22 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { PositionEditDialog } from "@/components/position-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { positionsApi } from "@/lib/api"
 import type { PositionOfResponsibility } from "@/lib/db"
-import { Trash2 } from "lucide-react"
+import { Trash2, Edit } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 
 export default function PositionsPage() {
   const [positions, setPositions] = useState<PositionOfResponsibility[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingPosition, setEditingPosition] = useState<PositionOfResponsibility | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     organization: "",
@@ -56,11 +61,29 @@ export default function PositionsPage() {
   }
 
   const handleDelete = async (posId: string) => {
+    setDeletingId(posId)
     try {
       await positionsApi.delete(posId)
       await fetchPositions()
     } catch (error) {
       console.error("Error deleting position:", error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleEdit = (position: PositionOfResponsibility) => {
+    setEditingPosition(position)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async (posId: string, data: any) => {
+    try {
+      await positionsApi.update(posId, data)
+      await fetchPositions()
+    } catch (error) {
+      console.error("Error updating position:", error)
+      throw error
     }
   }
 
@@ -194,12 +217,23 @@ export default function PositionsPage() {
                         <h3 className="text-lg font-semibold">{pos.title}</h3>
                         <p className="text-sm text-muted-foreground">{pos.organization}</p>
                       </div>
-                      <button
-                        onClick={() => handleDelete(pos.posId)}
-                        className="p-2 hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 size={18} className="text-destructive" />
-                      </button>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEdit(pos)}
+                          className="p-2 hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Edit position"
+                        >
+                          <Edit size={18} className="text-primary" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(pos.posId)}
+                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                          title="Delete position"
+                          disabled={deletingId === pos.posId}
+                        >
+                          {deletingId === pos.posId ? <Spinner className="text-destructive" /> : <Trash2 size={18} className="text-destructive" />}
+                        </button>
+                      </div>
                     </div>
                     {pos.description && <p className="text-sm text-foreground/80 mb-3">{pos.description}</p>}
                     <p className="text-xs text-muted-foreground">
@@ -233,6 +267,16 @@ export default function PositionsPage() {
             </Card>
           </div>
         </div>
+
+        <PositionEditDialog
+          position={editingPosition}
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setEditingPosition(null)
+          }}
+          onSave={handleUpdate}
+        />
       </div>
     </DashboardLayout>
   )

@@ -4,14 +4,18 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Project } from "@/lib/db"
-import { ExternalLink, Github, Trash2 } from "lucide-react"
+import { ExternalLink, Github, Trash2, Edit } from "lucide-react"
+
+import { Spinner } from "@/components/ui/spinner"
 
 interface ProjectCardProps {
   project: Project
   onDelete?: (id: string) => void
+  onEdit?: (project: Project) => void
+  isDeleting?: boolean
 }
 
-export function ProjectCard({ project, onDelete }: ProjectCardProps) {
+export function ProjectCard({ project, onDelete, onEdit, isDeleting }: ProjectCardProps) {
   const startDate = new Date(project.startDate).toLocaleDateString("en-US", {
     month: "short",
     year: "numeric",
@@ -29,14 +33,27 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
             {startDate} - {endDate}
           </p>
         </div>
-        {onDelete && (
-          <button
-            onClick={() => onDelete(project.projectId)}
-            className="p-2 hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <Trash2 size={18} className="text-destructive" />
-          </button>
-        )}
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(project)}
+              className="p-2 hover:bg-primary/10 rounded-lg transition-colors"
+              title="Edit project"
+            >
+              <Edit size={18} className="text-primary" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(project.projectId)}
+              className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+              title="Delete project"
+              disabled={!!isDeleting}
+            >
+              {isDeleting ? <Spinner className="text-destructive" /> : <Trash2 size={18} className="text-destructive" />}
+            </button>
+          )}
+        </div>
       </div>
 
       <p className="text-sm text-foreground/80 mb-4">{project.description}</p>

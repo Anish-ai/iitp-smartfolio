@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { AchievementForm } from "@/components/achievement-form"
 import { AchievementCard } from "@/components/achievement-card"
+import { AchievementEditDialog } from "@/components/achievement-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { achievementsApi } from "@/lib/api"
@@ -12,6 +13,9 @@ import type { Achievement } from "@/lib/db"
 export default function AchievementsPage() {
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchAchievements()
@@ -39,11 +43,29 @@ export default function AchievementsPage() {
   }
 
   const handleDelete = async (achievementId: string) => {
+    setDeletingId(achievementId)
     try {
       await achievementsApi.delete(achievementId)
       await fetchAchievements()
     } catch (error) {
       console.error("Error deleting achievement:", error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleEdit = (achievement: Achievement) => {
+    setEditingAchievement(achievement)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async (achievementId: string, data: any) => {
+    try {
+      await achievementsApi.update(achievementId, data)
+      await fetchAchievements()
+    } catch (error) {
+      console.error("Error updating achievement:", error)
+      throw error
     }
   }
 
@@ -113,7 +135,13 @@ export default function AchievementsPage() {
                 </Card>
               ) : (
                 achievements.map((achievement) => (
-                  <AchievementCard key={achievement.achievementId} achievement={achievement} onDelete={handleDelete} />
+                  <AchievementCard
+                    key={achievement.achievementId}
+                    achievement={achievement}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                    isDeleting={deletingId === achievement.achievementId}
+                  />
                 ))
               )}
             </div>
@@ -134,6 +162,16 @@ export default function AchievementsPage() {
             </Card>
           </div>
         </div>
+
+        <AchievementEditDialog
+          achievement={editingAchievement}
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setEditingAchievement(null)
+          }}
+          onSave={handleUpdate}
+        />
       </div>
     </DashboardLayout>
   )

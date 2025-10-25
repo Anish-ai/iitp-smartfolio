@@ -38,11 +38,15 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingSkill) {
-      // Merge new skills with existing skills
+      // Merge new skills with existing skills (ensure both are arrays)
+      const existingSkillsArray = Array.isArray(existingSkill.skills) ? existingSkill.skills as any[] : []
+      const incomingSkillsArray = Array.isArray(body.skills) ? body.skills as any[] : []
+      const merged = [...existingSkillsArray, ...incomingSkillsArray]
+
       const updatedSkill = await prisma.skill.update({
         where: { skillId: existingSkill.skillId },
         data: {
-          skills: [...existingSkill.skills, ...body.skills],
+          skills: merged,
         },
       })
       return NextResponse.json(updatedSkill, { status: 200 })

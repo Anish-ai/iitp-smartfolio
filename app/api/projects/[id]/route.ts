@@ -5,7 +5,7 @@ import { withAuth, unauthorizedResponse, serverErrorResponse, forbiddenResponse 
 // GET /api/projects/[id] - Get a single project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await withAuth(request)
@@ -13,8 +13,9 @@ export async function GET(
       return unauthorizedResponse(auth.error)
     }
 
+    const { id } = await params
     const project = await prisma.project.findUnique({
-      where: { projectId: params.id },
+      where: { projectId: id },
     })
 
     if (!project) {
@@ -36,7 +37,7 @@ export async function GET(
 // PUT /api/projects/[id] - Update a project
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await withAuth(request)
@@ -44,9 +45,10 @@ export async function PUT(
       return unauthorizedResponse(auth.error)
     }
 
+    const { id } = await params
     // Verify ownership
     const existing = await prisma.project.findUnique({
-      where: { projectId: params.id },
+      where: { projectId: id },
     })
 
     if (!existing) {
@@ -60,12 +62,18 @@ export async function PUT(
     const body = await request.json()
     const { projectId, userId, createdAt, ...updateData } = body
 
-    // Convert date strings to Date objects
-    if (updateData.startDate) updateData.startDate = new Date(updateData.startDate)
-    if (updateData.endDate) updateData.endDate = new Date(updateData.endDate)
+    // Convert date strings to Date objects, handle empty strings as null
+    if (updateData.startDate) {
+      updateData.startDate = updateData.startDate ? new Date(updateData.startDate) : null
+    }
+    if (updateData.endDate !== undefined) {
+      updateData.endDate = updateData.endDate && updateData.endDate.trim() !== '' 
+        ? new Date(updateData.endDate) 
+        : null
+    }
 
     const project = await prisma.project.update({
-      where: { projectId: params.id },
+      where: { projectId: id },
       data: updateData,
     })
 
@@ -79,7 +87,7 @@ export async function PUT(
 // DELETE /api/projects/[id] - Delete a project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await withAuth(request)
@@ -87,9 +95,10 @@ export async function DELETE(
       return unauthorizedResponse(auth.error)
     }
 
+    const { id } = await params
     // Verify ownership
     const existing = await prisma.project.findUnique({
-      where: { projectId: params.id },
+      where: { projectId: id },
     })
 
     if (!existing) {
@@ -101,7 +110,7 @@ export async function DELETE(
     }
 
     await prisma.project.delete({
-      where: { projectId: params.id },
+      where: { projectId: id },
     })
 
     return NextResponse.json({ message: 'Project deleted successfully' })

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { EducationForm } from "@/components/education-form"
 import { EducationCard } from "@/components/education-card"
+import { EducationEditDialog } from "@/components/education-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
 import { Card } from "@/components/ui/card"
 import { educationApi } from "@/lib/api"
@@ -12,6 +13,9 @@ import type { Education } from "@/lib/db"
 export default function EducationPage() {
   const [educations, setEducations] = useState<Education[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingEducation, setEditingEducation] = useState<Education | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchEducations()
@@ -39,11 +43,29 @@ export default function EducationPage() {
   }
 
   const handleDelete = async (eduId: string) => {
+    setDeletingId(eduId)
     try {
       await educationApi.delete(eduId)
       await fetchEducations()
     } catch (error) {
       console.error("Error deleting education:", error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleEdit = (education: Education) => {
+    setEditingEducation(education)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async (eduId: string, data: any) => {
+    try {
+      await educationApi.update(eduId, data)
+      await fetchEducations()
+    } catch (error) {
+      console.error("Error updating education:", error)
+      throw error
     }
   }
 
@@ -121,7 +143,15 @@ export default function EducationPage() {
                   <p>No education records yet. Add your academic details above!</p>
                 </Card>
               ) : (
-                educations.map((edu) => <EducationCard key={edu.eduId} education={edu} onDelete={handleDelete} />)
+                educations.map((edu) => (
+                  <EducationCard
+                    key={edu.eduId}
+                    education={edu}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                    isDeleting={deletingId === edu.eduId}
+                  />
+                ))
               )}
             </div>
           </div>
@@ -139,6 +169,16 @@ export default function EducationPage() {
             </Card>
           </div>
         </div>
+
+        <EducationEditDialog
+          education={editingEducation}
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false)
+            setEditingEducation(null)
+          }}
+          onSave={handleUpdate}
+        />
       </div>
     </DashboardLayout>
   )

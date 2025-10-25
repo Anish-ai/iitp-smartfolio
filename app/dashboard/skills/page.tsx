@@ -10,9 +10,12 @@ import { Card } from "@/components/ui/card"
 import { skillsApi } from "@/lib/api"
 import type { Skill } from "@/lib/db"
 
+import { Spinner } from "@/components/ui/spinner"
+
 export default function SkillsPage() {
   const [skills, setSkills] = useState<Skill[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
@@ -42,11 +45,14 @@ export default function SkillsPage() {
   }
 
   const handleDelete = async (skillId: string) => {
+    setDeletingId(skillId)
     try {
       await skillsApi.delete(skillId)
       await fetchSkills()
     } catch (error) {
       console.error("Error deleting skills:", error)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -141,7 +147,7 @@ export default function SkillsPage() {
                   <p>No skills added yet. Start by adding your first skill category!</p>
                 </Card>
               ) : (
-                <SkillsDisplay skills={skills} onDelete={handleDelete} onEdit={handleEdit} />
+                <SkillsDisplay skills={skills} onDelete={handleDelete} onEdit={handleEdit} deletingId={deletingId} />
               )}
             </div>
           </div>

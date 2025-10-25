@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         organization: body.organization,
         description: body.description,
         startDate: new Date(body.startDate),
-        endDate: body.endDate ? new Date(body.endDate) : null,
+        endDate: body.endDate && body.endDate.trim() !== '' ? new Date(body.endDate) : null,
       },
     })
 
