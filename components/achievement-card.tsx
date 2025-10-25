@@ -22,7 +22,7 @@ export function AchievementCard({ achievement, onDelete, onEdit, isDeleting }: A
     <Card className="p-6 hover:shadow-lg transition-all duration-300 group border-l-4 border-l-accent">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-start gap-3 flex-1">
-          <Trophy size={24} className="text-accent mt-1 flex-shrink-0" />
+          <Trophy size={24} className="text-accent mt-1 shrink-0" />
           <div>
             <h3 className="text-lg font-semibold">{achievement.title}</h3>
             <p className="text-sm text-muted-foreground">{date}</p>
