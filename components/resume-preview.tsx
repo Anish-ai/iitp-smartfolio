@@ -137,7 +137,7 @@ export function ResumePreview({
           {skills.map((skillGroup) => (
             <div key={skillGroup.skillId} className="mb-2">
               <span className="font-semibold text-sm">{skillGroup.category}:</span>
-              <p className="text-sm text-gray-700">{skillGroup.skills.map((s) => s.name).join(", ")}</p>
+              <p className="text-sm text-gray-700">{skillGroup.skills.map((s: { name: string }) => s.name).join(", ")}</p>
             </div>
           ))}
         </div>

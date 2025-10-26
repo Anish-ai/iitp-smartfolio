@@ -17,8 +17,6 @@ import {
   coursesApi 
 } from "@/lib/api"
 import { Download, Share2, QrCode } from "lucide-react"
-import html2canvas from "html2canvas"
-import jsPDF from "jspdf"
 import type {
   Profile,
   Project,
@@ -42,9 +40,29 @@ export default function ResumePage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const resumeRef = useRef<HTMLDivElement>(null)
+  const previewContainerRef = useRef<HTMLDivElement>(null)
+  const [previewScale, setPreviewScale] = useState(1)
+
+  // Base width of the resume in pixels (8.5in at 96dpi)
+  const BASE_RESUME_WIDTH_PX = 8.5 * 96 // ~816px
 
   useEffect(() => {
     fetchAllData()
+  }, [])
+
+  // Auto-scale the preview so the full page fits in the visible container width.
+  useEffect(() => {
+    const updateScale = () => {
+      const el = previewContainerRef.current
+      if (!el) return
+      const containerWidth = el.clientWidth || 0
+      if (!containerWidth) return
+      const scale = Math.min(1, containerWidth / BASE_RESUME_WIDTH_PX)
+      setPreviewScale(scale > 0 ? scale : 1)
+    }
+    updateScale()
+    window.addEventListener("resize", updateScale)
+    return () => window.removeEventListener("resize", updateScale)
   }, [])
 
   const fetchAllData = async () => {
@@ -85,34 +103,42 @@ export default function ResumePage() {
   }
 
   const downloadPDF = async () => {
-    if (!resumeRef.current) return
-
     try {
-      const canvas = await html2canvas(resumeRef.current, { scale: 2 })
-      const imgData = canvas.toDataURL("image/png")
-      const pdf = new jsPDF("p", "mm", "a4")
-      const imgWidth = 210
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight)
-      pdf.save(`${profile?.name || "resume"}.pdf`)
+      const res = await fetch('/api/resume/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile,
+          projects,
+          education,
+          skills,
+          achievements,
+          positions,
+          certifications,
+          courses,
+          template,
+          pageSize: 'Letter',
+          fileName: profile?.name || 'resume',
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `HTTP ${res.status}`)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${profile?.name || 'resume'}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
     } catch (error) {
-      console.error("Error generating PDF:", error)
+      console.error('Error generating PDF:', error)
     }
   }
 
-  const downloadImage = async () => {
-    if (!resumeRef.current) return
-
-    try {
-      const canvas = await html2canvas(resumeRef.current, { scale: 2 })
-      const link = document.createElement("a")
-      link.href = canvas.toDataURL("image/png")
-      link.download = `${profile?.name || "resume"}.png`
-      link.click()
-    } catch (error) {
-      console.error("Error generating image:", error)
-    }
-  }
+  // Image download is temporarily disabled in favor of robust server-side PDF generation.
+  // If needed, we can add a server route to export a PNG using Puppeteer screenshots.
 
   if (isLoading) {
     return (
@@ -147,9 +173,7 @@ export default function ResumePage() {
               <Button onClick={downloadPDF} className="w-full justify-start gap-2 bg-transparent" variant="outline">
                 <Download size={18} /> Download PDF
               </Button>
-              <Button onClick={downloadImage} className="w-full justify-start gap-2 bg-transparent" variant="outline">
-                <Download size={18} /> Download Image
-              </Button>
+              {/* Image export can be added via server-side screenshot if needed */}
               <Button className="w-full justify-start gap-2 bg-transparent" variant="outline">
                 <Share2 size={18} /> Share Link
               </Button>
@@ -185,19 +209,33 @@ export default function ResumePage() {
           <div className="lg:col-span-2">
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Preview</h2>
-              <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[800px] flex justify-center">
-                <div ref={resumeRef}>
-                  <ResumePreview
-                    profile={profile || undefined}
-                    projects={projects}
-                    education={education}
-                    skills={skills}
-                    achievements={achievements}
-                    positions={positions}
-                    certifications={certifications}
-                    courses={courses}
-                    template={template}
-                  />
+              <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[800px]">
+                <div ref={previewContainerRef} className="w-full flex justify-center">
+                  {/*
+                    We render the resume at its natural width (~816px) and scale it down to fit the container.
+                    This ensures the entire page is visible without cropping while preserving aspect ratio.
+                  */}
+                  <div
+                    style={{
+                      width: `${BASE_RESUME_WIDTH_PX}px`,
+                      transform: `scale(${previewScale})`,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <div ref={resumeRef} id="resume-capture">
+                      <ResumePreview
+                        profile={profile || undefined}
+                        projects={projects}
+                        education={education}
+                        skills={skills}
+                        achievements={achievements}
+                        positions={positions}
+                        certifications={certifications}
+                        courses={courses}
+                        template={template}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>

@@ -41,7 +41,7 @@ export function SkillsDisplay({ skills, onDelete, onEdit, deletingId }: SkillsDi
               {onDelete && (
                 <button
                   onClick={() => onDelete(skillGroup.skillId)}
-                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex items-center justify-center min-w-[32px] min-h-[32px]"
+                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex items-center justify-center min-w-8 min-h-8"
                   title="Delete category"
                   disabled={deletingId === skillGroup.skillId}
                 >
