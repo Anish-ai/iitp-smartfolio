@@ -6,15 +6,15 @@ import { TemplateSelect } from "@/components/resume-templates"
 import { ResumePreview } from "@/components/resume-preview"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { 
-  profileApi, 
-  projectsApi, 
-  educationApi, 
-  skillsApi, 
-  achievementsApi, 
-  positionsApi, 
-  certificationsApi, 
-  coursesApi 
+import {
+  profileApi,
+  projectsApi,
+  educationApi,
+  skillsApi,
+  achievementsApi,
+  positionsApi,
+  certificationsApi,
+  coursesApi
 } from "@/lib/api"
 import { Download, Share2, QrCode } from "lucide-react"
 import type {
@@ -43,11 +43,27 @@ export default function ResumePage() {
   const previewContainerRef = useRef<HTMLDivElement>(null)
   const [previewScale, setPreviewScale] = useState(1)
 
+  const [resumeHeight, setResumeHeight] = useState(0)
+
   // Base width of the resume in pixels (8.5in at 96dpi)
   const BASE_RESUME_WIDTH_PX = 8.5 * 96 // ~816px
 
   useEffect(() => {
     fetchAllData()
+  }, [])
+
+  // Monitor resume height changes
+  useEffect(() => {
+    if (!resumeRef.current) return
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setResumeHeight(entry.contentRect.height)
+      }
+    })
+
+    observer.observe(resumeRef.current)
+    return () => observer.disconnect()
   }, [])
 
   // Auto-scale the preview so the full page fits in the visible container width.
@@ -57,12 +73,28 @@ export default function ResumePage() {
       if (!el) return
       const containerWidth = el.clientWidth || 0
       if (!containerWidth) return
-      const scale = Math.min(1, containerWidth / BASE_RESUME_WIDTH_PX)
+
+      // Add a small buffer for padding
+      const scale = Math.min(1, (containerWidth - 32) / BASE_RESUME_WIDTH_PX)
       setPreviewScale(scale > 0 ? scale : 1)
     }
+
+    // Initial update
     updateScale()
+
+    // Update on resize
     window.addEventListener("resize", updateScale)
-    return () => window.removeEventListener("resize", updateScale)
+
+    // Also update when container size might change (e.g. sidebar toggle)
+    const observer = new ResizeObserver(updateScale)
+    if (previewContainerRef.current) {
+      observer.observe(previewContainerRef.current)
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateScale)
+      observer.disconnect()
+    }
   }, [])
 
   const fetchAllData = async () => {
@@ -209,31 +241,39 @@ export default function ResumePage() {
           <div className="lg:col-span-2">
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Preview</h2>
-              <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[800px]">
-                <div ref={previewContainerRef} className="w-full flex justify-center">
-                  {/*
-                    We render the resume at its natural width (~816px) and scale it down to fit the container.
-                    This ensures the entire page is visible without cropping while preserving aspect ratio.
-                  */}
+              <div className="bg-gray-100 p-4 rounded-lg overflow-hidden flex flex-col items-center">
+                <div ref={previewContainerRef} className="w-full flex justify-center overflow-hidden">
                   <div
                     style={{
-                      width: `${BASE_RESUME_WIDTH_PX}px`,
-                      transform: `scale(${previewScale})`,
-                      transformOrigin: "top left",
+                      width: BASE_RESUME_WIDTH_PX * previewScale,
+                      height: ((resumeHeight || 1056) * previewScale),
+                      position: 'relative',
+                      transition: 'width 0.2s, height 0.2s'
                     }}
                   >
-                    <div ref={resumeRef} id="resume-capture">
-                      <ResumePreview
-                        profile={profile || undefined}
-                        projects={projects}
-                        education={education}
-                        skills={skills}
-                        achievements={achievements}
-                        positions={positions}
-                        certifications={certifications}
-                        courses={courses}
-                        template={template}
-                      />
+                    <div
+                      style={{
+                        width: `${BASE_RESUME_WIDTH_PX}px`,
+                        transform: `scale(${previewScale})`,
+                        transformOrigin: "top left",
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                      }}
+                    >
+                      <div ref={resumeRef} id="resume-capture">
+                        <ResumePreview
+                          profile={profile || undefined}
+                          projects={projects}
+                          education={education}
+                          skills={skills}
+                          achievements={achievements}
+                          positions={positions}
+                          certifications={certifications}
+                          courses={courses}
+                          template={template}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

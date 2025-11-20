@@ -100,7 +100,7 @@ export function ResumePreview({
                 </span>
               </div>
               <p className="text-sm text-gray-700">{pos.organization}</p>
-              {pos.description && <p className="text-sm text-gray-600">{pos.description}</p>}
+              {pos.description && <p className="text-sm text-gray-600 whitespace-pre-line">{pos.description}</p>}
             </div>
           ))}
         </div>
@@ -119,7 +119,7 @@ export function ResumePreview({
                   {proj.endDate ? ` - ${new Date(proj.endDate).getFullYear()}` : ""}
                 </span>
               </div>
-              {proj.description && <p className="text-sm text-gray-600">{proj.description}</p>}
+              {proj.description && <p className="text-sm text-gray-600 whitespace-pre-line">{proj.description}</p>}
               {proj.techStack.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
                   <strong>Tech:</strong> {proj.techStack.join(", ")}

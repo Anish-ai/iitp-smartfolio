@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     })
   } catch (error: any) {
     if (browser) {
-      try { await browser.close() } catch {}
+      try { await browser.close() } catch { }
     }
     return NextResponse.json({ error: error?.message || 'Failed to generate PDF' }, { status: 500 })
   }
@@ -113,20 +113,21 @@ function buildHtml(data: AnyObj) {
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; color: #111827; }
 
     /* Page */
-    .page { width: 210mm; min-height: 297mm; padding: 14mm; background: #fff; }
-    .header { border-bottom: 2px solid #2563EB; padding-bottom: 8px; margin-bottom: 16px; }
-    .name { font-size: 28px; font-weight: 800; color: #2563EB; }
-    .contact { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #4B5563; margin-top: 6px; }
+    .page { width: 210mm; padding: 12mm; background: #fff; overflow: hidden; }
+    .header { border-bottom: 2px solid #2563EB; padding-bottom: 12px; margin-bottom: 14px; page-break-inside: avoid; }
+    .name { font-size: 36px; font-weight: 800; color: #2563EB; line-height: 1.2; }
+    .contact { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #4B5563; margin-top: 8px; }
 
-    h2 { font-size: 15px; color: #2563EB; margin: 18px 0 10px; }
-    .section { margin-bottom: 14px; }
-    .row { display: flex; justify-content: space-between; gap: 8px; }
+    h2 { font-size: 18px; color: #2563EB; margin: 16px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; page-break-after: avoid; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    .section { margin-bottom: 12px; page-break-inside: avoid; }
+    .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
     .muted { color: #6B7280; }
-    .small { font-size: 12px; }
-    .xs { font-size: 11px; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #EFF6FF; color: #1D4ED8; font-size: 11px; margin: 2px 4px 0 0; }
-    .list { padding-left: 14px; margin: 0; }
-    .list li { margin: 3px 0; }
+    .small { font-size: 16px; line-height: 1.5; }
+    .xs { font-size: 14px; line-height: 1.5; }
+    .pill { display: inline-block; padding: 3px 12px; border-radius: 999px; background: #EFF6FF; color: #1D4ED8; font-size: 12px; margin: 3px 5px 0 0; }
+    .list { padding-left: 18px; margin: 0; }
+    .list li { margin: 4px 0; page-break-inside: avoid; }
+    .whitespace-pre-line { white-space: pre-line; }
 
     /* Template variations (simple placeholder, can be expanded) */
     .t-modern .header { border-color: #2563EB; }
@@ -177,7 +178,7 @@ function sectionPositions(list: AnyObj[]) {
     <div class="section">
       <div class="row"><strong>${esc(p.title)}</strong><span class="small muted">${fmtYear(p.startDate)} - ${fmtYear(p.endDate) || 'Present'}</span></div>
       <div class="small">${esc(p.organization)}</div>
-      ${p.description ? `<div class="xs muted">${esc(p.description)}</div>` : ''}
+      ${p.description ? `<div class="xs muted whitespace-pre-line">${esc(p.description)}</div>` : ''}
     </div>`).join('')
   return `<h2>Positions of Responsibility</h2>${items}`
 }
@@ -187,7 +188,7 @@ function sectionProjects(list: AnyObj[]) {
   const items = list.slice(0, 4).map((pr: AnyObj) => `
     <div class="section">
       <div class="row"><strong>${esc(pr.title)}</strong><span class="small muted">${fmtYear(pr.startDate)}${pr.endDate ? ' - ' + fmtYear(pr.endDate) : ''}</span></div>
-      ${pr.description ? `<div class="xs muted">${esc(pr.description)}</div>` : ''}
+      ${pr.description ? `<div class="xs muted whitespace-pre-line">${esc(pr.description)}</div>` : ''}
       ${pr.techStack?.length ? `<div class="xs">Tech: ${esc(join(pr.techStack))}</div>` : ''}
     </div>`).join('')
   return `<h2>Projects</h2>${items}`
@@ -197,7 +198,7 @@ function sectionSkills(list: AnyObj[]) {
   if (!list?.length) return ''
   const items = list.map((g: AnyObj) => `
     <div class="section">
-      <div class="small"><strong>${esc(g.category)}:</strong> ${esc(join((g.skills||[]).map((s: AnyObj) => s.name)))}</div>
+      <div class="small"><strong>${esc(g.category)}:</strong> ${esc(join((g.skills || []).map((s: AnyObj) => s.name)))}</div>
     </div>`).join('')
   return `<h2>Skills</h2>${items}`
 }

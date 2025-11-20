@@ -84,6 +84,7 @@ export function ProjectForm({ onSubmit, isLoading }: ProjectFormProps) {
           placeholder="Describe your project..."
           className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           rows={4}
+          required
         />
       </div>
 
