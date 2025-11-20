@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ResumePreview } from "@/components/resume-preview"
+import { ShareResumeDialog } from "@/components/share-resume-dialog"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +16,7 @@ import {
   useCertifications,
   useCourses
 } from "@/lib/hooks"
-import { Download, Share2, QrCode } from "lucide-react"
+import { Download } from "lucide-react"
 
 export default function ResumePage() {
   const [template, setTemplate] = useState("modern")
@@ -148,14 +149,9 @@ export default function ResumePage() {
                   <Download size={16} className="mr-2" />
                   Download PDF
                 </Button>
-                <Button size="sm" variant="outline" title="Share Link">
-                  <Share2 size={16} className="mr-2" />
-                  Share
-                </Button>
-                <Button size="sm" variant="outline" title="Generate QR Code">
-                  <QrCode size={16} className="mr-2" />
-                  QR Code
-                </Button>
+                {profile?.userId && (
+                  <ShareResumeDialog username={profile.userId} name={profile.name} />
+                )}
               </div>
             </div>
             <div className="bg-gray-100 p-4 rounded-lg overflow-hidden flex flex-col items-center">
