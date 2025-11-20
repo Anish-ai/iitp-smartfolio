@@ -41,9 +41,10 @@ export async function POST(req: Request) {
         headless: true,
         defaultViewport: { width: 816, height: 1056 },
       })
-    } else if (isVercel) {
-      // Vercel-specific chromium configuration
-      const executablePath = await chromium.executablePath('/tmp/chromium')
+    } else {
+      // Production: use @sparticuz/chromium without cache path
+      // Let chromium package handle its own binary extraction
+      const executablePath = await chromium.executablePath()
       
       browser = await puppeteerCore.launch({
         args: [
@@ -52,18 +53,7 @@ export async function POST(req: Request) {
           '--disable-dev-shm-usage',
           '--disable-setuid-sandbox',
           '--no-sandbox',
-          '--single-process',
-          '--no-zygote'
         ],
-        defaultViewport: { width: 816, height: 1056 },
-        executablePath,
-        headless: true,
-      })
-    } else {
-      // Fallback for other production environments
-      const executablePath = await chromium.executablePath()
-      browser = await puppeteerCore.launch({
-        args: chromium.args,
         defaultViewport: { width: 816, height: 1056 },
         executablePath,
         headless: true,
