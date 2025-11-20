@@ -160,12 +160,32 @@ export function ResumePreview({
 
       {/* Certifications */}
       {certifications.length > 0 && (
-        <div>
+        <div className="mb-6">
           <h2 className="text-lg font-bold text-blue-600 mb-3">Certifications</h2>
           {certifications.slice(0, 3).map((cert) => (
             <div key={cert.certId} className="mb-2 text-sm">
               <span className="font-semibold">{cert.title}</span>
               <p className="text-gray-600">{cert.issuer}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Courses */}
+      {courses.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-blue-600 mb-3">Courses</h2>
+          {courses.slice(0, 5).map((course) => (
+            <div key={course.courseId} className="mb-2 text-sm">
+              <div className="flex justify-between">
+                <span className="font-semibold">{course.title}</span>
+                {course.completionDate && (
+                  <span className="text-gray-600">
+                    {new Date(course.completionDate).getFullYear()}
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-600">{course.provider}</p>
             </div>
           ))}
         </div>

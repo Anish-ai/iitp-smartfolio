@@ -7,9 +7,30 @@ import { SessionTimer } from "@/components/session-timer"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { redirect } from "next/navigation"
 import { isAuthenticated } from "@/lib/api"
+import {
+  useProfile,
+  useProjects,
+  useEducation,
+  useSkills,
+  useAchievements,
+  usePositions,
+  useCertifications,
+  useCourses
+} from "@/lib/hooks"
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
+
+  // Prefetch ALL data once when dashboard loads
+  // This ensures all data is cached and available for all sections
+  useProfile()
+  useProjects()
+  useEducation()
+  useSkills()
+  useAchievements()
+  usePositions()
+  useCertifications()
+  useCourses()
 
   // Check token expiration on mount and periodically
   useEffect(() => {

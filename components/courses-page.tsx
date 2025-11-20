@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useCourses } from "@/lib/hooks"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { CourseEditDialog } from "@/components/course-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
@@ -15,8 +16,8 @@ import { Trash2, ExternalLink, Edit } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 
 export function CoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const { courses, isLoading: isCoursesLoading, mutate } = useCourses()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -27,19 +28,6 @@ export function CoursesPage() {
     completionDate: "",
   })
 
-  useEffect(() => {
-    fetchCourses()
-  }, [])
-
-  const fetchCourses = async () => {
-    try {
-      const data = await coursesApi.list()
-      setCourses(data || [])
-    } catch (error) {
-      console.error("Error fetching courses:", error)
-    }
-  }
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -47,7 +35,7 @@ export function CoursesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       // Use "IIT Patna" as default if provider field is empty
       const courseData = {
@@ -56,11 +44,11 @@ export function CoursesPage() {
       }
       await coursesApi.create(courseData)
       setFormData({ title: "", provider: "IIT Patna", certificateLink: "", completionDate: "" })
-      await fetchCourses()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error adding course:", error)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -68,7 +56,7 @@ export function CoursesPage() {
     setDeletingId(courseId)
     try {
       await coursesApi.delete(courseId)
-      await fetchCourses()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error deleting course:", error)
     } finally {
@@ -84,7 +72,7 @@ export function CoursesPage() {
   const handleUpdate = async (courseId: string, data: any) => {
     try {
       await coursesApi.update(courseId, data)
-      await fetchCourses()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error updating course:", error)
       throw error
@@ -93,7 +81,7 @@ export function CoursesPage() {
 
   const handleBulkImport = async (items: any[]) => {
     const errors: string[] = []
-    
+
     for (const item of items) {
       try {
         await coursesApi.create({
@@ -106,9 +94,9 @@ export function CoursesPage() {
         errors.push(`Failed to import "${item.title}": ${error.message}`)
       }
     }
-    
-    await fetchCourses()
-    
+
+    await mutate() // Revalidate cache
+
     if (errors.length > 0) {
       throw new Error(`Imported with errors:\n${errors.join('\n')}`)
     }
@@ -198,20 +186,22 @@ export function CoursesPage() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-                  {isLoading ? "Adding..." : "Add Course"}
+                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                  {isSubmitting ? "Adding..." : "Add Course"}
                 </Button>
               </form>
             </Card>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Courses ({courses.length})</h2>
-              {courses.length === 0 ? (
+              <h2 className="text-xl font-semibold">Your Courses ({courses?.length || 0})</h2>
+              {isCoursesLoading ? (
+                <div className="text-center p-8">Loading courses...</div>
+              ) : courses?.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   <p>No courses added yet. Start tracking your learning journey!</p>
                 </Card>
               ) : (
-                courses.map((course) => (
+                courses?.map((course: Course) => (
                   <Card key={course.courseId} className="p-6 hover:shadow-lg transition-all duration-300 group">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">

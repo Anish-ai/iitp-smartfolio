@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useProjects } from "@/lib/hooks"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProjectForm } from "@/components/project-form"
 import { ProjectCard } from "@/components/project-card"
@@ -11,34 +12,21 @@ import { projectsApi } from "@/lib/api"
 import type { Project } from "@/lib/db"
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const { projects, isLoading: isProjectsLoading, mutate } = useProjects()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchProjects()
-  }, [])
-
-  const fetchProjects = async () => {
-    try {
-      const data = await projectsApi.list()
-      setProjects(data || [])
-    } catch (error) {
-      console.error("Error fetching projects:", error)
-    }
-  }
-
   const handleSubmit = async (data: any) => {
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       await projectsApi.create(data)
-      await fetchProjects()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error adding project:", error)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -46,7 +34,7 @@ export default function ProjectsPage() {
     setDeletingId(projectId)
     try {
       await projectsApi.delete(projectId)
-      await fetchProjects()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error deleting project:", error)
     } finally {
@@ -62,7 +50,7 @@ export default function ProjectsPage() {
   const handleUpdate = async (projectId: string, data: any) => {
     try {
       await projectsApi.update(projectId, data)
-      await fetchProjects()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error updating project:", error)
       throw error
@@ -71,7 +59,7 @@ export default function ProjectsPage() {
 
   const handleBulkImport = async (items: any[]) => {
     const errors: string[] = []
-    
+
     for (const item of items) {
       try {
         await projectsApi.create({
@@ -87,9 +75,9 @@ export default function ProjectsPage() {
         errors.push(`Failed to import "${item.title}": ${error.message}`)
       }
     }
-    
-    await fetchProjects()
-    
+
+    await mutate() // Revalidate cache
+
     if (errors.length > 0) {
       throw new Error(`Imported with errors:\n${errors.join('\n')}`)
     }
@@ -136,17 +124,19 @@ export default function ProjectsPage() {
           <div className="lg:col-span-2">
             <Card className="p-6 mb-8">
               <h2 className="text-xl font-semibold mb-6">Add New Project</h2>
-              <ProjectForm onSubmit={handleSubmit} isLoading={isLoading} />
+              <ProjectForm onSubmit={handleSubmit} isLoading={isSubmitting} />
             </Card>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Projects ({projects.length})</h2>
-              {projects.length === 0 ? (
+              <h2 className="text-xl font-semibold">Your Projects ({projects?.length || 0})</h2>
+              {isProjectsLoading ? (
+                <div className="text-center p-8">Loading projects...</div>
+              ) : projects?.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   <p>No projects yet. Add your first project above!</p>
                 </Card>
               ) : (
-                projects.map((project) => (
+                projects?.map((project: Project) => (
                   <ProjectCard
                     key={project.projectId}
                     project={project}

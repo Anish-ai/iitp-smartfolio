@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useAchievements } from "@/lib/hooks"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { AchievementForm } from "@/components/achievement-form"
 import { AchievementCard } from "@/components/achievement-card"
@@ -11,34 +12,21 @@ import { achievementsApi } from "@/lib/api"
 import type { Achievement } from "@/lib/db"
 
 export default function AchievementsPage() {
-  const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const { achievements, isLoading: isAchievementsLoading, mutate } = useAchievements()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchAchievements()
-  }, [])
-
-  const fetchAchievements = async () => {
-    try {
-      const data = await achievementsApi.list()
-      setAchievements(data || [])
-    } catch (error) {
-      console.error("Error fetching achievements:", error)
-    }
-  }
-
   const handleSubmit = async (data: any) => {
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       await achievementsApi.create(data)
-      await fetchAchievements()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error adding achievement:", error)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -46,7 +34,7 @@ export default function AchievementsPage() {
     setDeletingId(achievementId)
     try {
       await achievementsApi.delete(achievementId)
-      await fetchAchievements()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error deleting achievement:", error)
     } finally {
@@ -62,7 +50,7 @@ export default function AchievementsPage() {
   const handleUpdate = async (achievementId: string, data: any) => {
     try {
       await achievementsApi.update(achievementId, data)
-      await fetchAchievements()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error updating achievement:", error)
       throw error
@@ -71,7 +59,7 @@ export default function AchievementsPage() {
 
   const handleBulkImport = async (items: any[]) => {
     const errors: string[] = []
-    
+
     for (const item of items) {
       try {
         await achievementsApi.create({
@@ -83,9 +71,9 @@ export default function AchievementsPage() {
         errors.push(`Failed to import "${item.title}": ${error.message}`)
       }
     }
-    
-    await fetchAchievements()
-    
+
+    await mutate() // Revalidate cache
+
     if (errors.length > 0) {
       throw new Error(`Imported with errors:\n${errors.join('\n')}`)
     }
@@ -124,17 +112,19 @@ export default function AchievementsPage() {
           <div className="lg:col-span-2">
             <Card className="p-6 mb-8">
               <h2 className="text-xl font-semibold mb-6">Add Achievement</h2>
-              <AchievementForm onSubmit={handleSubmit} isLoading={isLoading} />
+              <AchievementForm onSubmit={handleSubmit} isLoading={isSubmitting} />
             </Card>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Achievements ({achievements.length})</h2>
-              {achievements.length === 0 ? (
+              <h2 className="text-xl font-semibold">Your Achievements ({achievements?.length || 0})</h2>
+              {isAchievementsLoading ? (
+                <div className="text-center p-8">Loading achievements...</div>
+              ) : achievements?.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   <p>No achievements added yet. Share your accomplishments!</p>
                 </Card>
               ) : (
-                achievements.map((achievement) => (
+                achievements?.map((achievement: Achievement) => (
                   <AchievementCard
                     key={achievement.achievementId}
                     achievement={achievement}

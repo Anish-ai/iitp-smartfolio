@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useSkills } from "@/lib/hooks"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { SkillsForm } from "@/components/skills-form"
 import { SkillsDisplay } from "@/components/skills-display"
@@ -13,34 +14,21 @@ import type { Skill } from "@/lib/db"
 import { Spinner } from "@/components/ui/spinner"
 
 export default function SkillsPage() {
-  const [skills, setSkills] = useState<Skill[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const { skills, isLoading: isSkillsLoading, mutate } = useSkills()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchSkills()
-  }, [])
-
-  const fetchSkills = async () => {
-    try {
-      const data = await skillsApi.list()
-      setSkills(data || [])
-    } catch (error) {
-      console.error("Error fetching skills:", error)
-    }
-  }
-
   const handleSubmit = async (data: any) => {
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       await skillsApi.create(data)
-      await fetchSkills()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error adding skills:", error)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -48,7 +36,7 @@ export default function SkillsPage() {
     setDeletingId(skillId)
     try {
       await skillsApi.delete(skillId)
-      await fetchSkills()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error deleting skills:", error)
     } finally {
@@ -70,7 +58,7 @@ export default function SkillsPage() {
         // Update the skills
         await skillsApi.update(skillId, { skills: updatedSkills })
       }
-      await fetchSkills()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error updating skills:", error)
       throw error
@@ -79,7 +67,7 @@ export default function SkillsPage() {
 
   const handleBulkImport = async (items: any[]) => {
     const errors: string[] = []
-    
+
     for (const item of items) {
       try {
         await skillsApi.create({
@@ -90,9 +78,9 @@ export default function SkillsPage() {
         errors.push(`Failed to import "${item.category}": ${error.message}`)
       }
     }
-    
-    await fetchSkills()
-    
+
+    await mutate() // Revalidate cache
+
     if (errors.length > 0) {
       throw new Error(`Imported with errors:\n${errors.join('\n')}`)
     }
@@ -137,12 +125,14 @@ export default function SkillsPage() {
           <div className="lg:col-span-2">
             <Card className="p-6 mb-8">
               <h2 className="text-xl font-semibold mb-6">Add Skill Category</h2>
-              <SkillsForm onSubmit={handleSubmit} isLoading={isLoading} existingSkills={skills} />
+              <SkillsForm onSubmit={handleSubmit} isLoading={isSubmitting} existingSkills={skills} />
             </Card>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Skills ({skills.length})</h2>
-              {skills.length === 0 ? (
+              <h2 className="text-xl font-semibold">Your Skills ({skills?.length || 0})</h2>
+              {isSkillsLoading ? (
+                <div className="text-center p-8">Loading skills...</div>
+              ) : skills?.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   <p>No skills added yet. Start by adding your first skill category!</p>
                 </Card>

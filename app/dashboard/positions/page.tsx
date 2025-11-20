@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { usePositions } from "@/lib/hooks"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { PositionEditDialog } from "@/components/position-edit-dialog"
 import { BulkImportDialog } from "@/components/bulk-import-dialog"
@@ -15,8 +16,8 @@ import { Trash2, Edit } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 
 export default function PositionsPage() {
-  const [positions, setPositions] = useState<PositionOfResponsibility[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const { positions, isLoading: isPositionsLoading, mutate } = usePositions()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingPosition, setEditingPosition] = useState<PositionOfResponsibility | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -28,19 +29,6 @@ export default function PositionsPage() {
     endDate: "",
   })
 
-  useEffect(() => {
-    fetchPositions()
-  }, [])
-
-  const fetchPositions = async () => {
-    try {
-      const data = await positionsApi.list()
-      setPositions(data || [])
-    } catch (error) {
-      console.error("Error fetching positions:", error)
-    }
-  }
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -48,15 +36,15 @@ export default function PositionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       await positionsApi.create(formData)
       setFormData({ title: "", organization: "", description: "", startDate: "", endDate: "" })
-      await fetchPositions()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error adding position:", error)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -64,7 +52,7 @@ export default function PositionsPage() {
     setDeletingId(posId)
     try {
       await positionsApi.delete(posId)
-      await fetchPositions()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error deleting position:", error)
     } finally {
@@ -80,7 +68,7 @@ export default function PositionsPage() {
   const handleUpdate = async (posId: string, data: any) => {
     try {
       await positionsApi.update(posId, data)
-      await fetchPositions()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error updating position:", error)
       throw error
@@ -89,7 +77,7 @@ export default function PositionsPage() {
 
   const handleBulkImport = async (items: any[]) => {
     const errors: string[] = []
-    
+
     for (const item of items) {
       try {
         await positionsApi.create({
@@ -103,9 +91,9 @@ export default function PositionsPage() {
         errors.push(`Failed to import "${item.title}": ${error.message}`)
       }
     }
-    
-    await fetchPositions()
-    
+
+    await mutate() // Revalidate cache
+
     if (errors.length > 0) {
       throw new Error(`Imported with errors:\n${errors.join('\n')}`)
     }
@@ -197,20 +185,22 @@ export default function PositionsPage() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-                  {isLoading ? "Adding..." : "Add Position"}
+                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                  {isSubmitting ? "Adding..." : "Add Position"}
                 </Button>
               </form>
             </Card>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Positions ({positions.length})</h2>
-              {positions.length === 0 ? (
+              <h2 className="text-xl font-semibold">Your Positions ({positions?.length || 0})</h2>
+              {isPositionsLoading ? (
+                <div className="text-center p-8">Loading positions...</div>
+              ) : positions?.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   <p>No positions added yet. Share your leadership experience!</p>
                 </Card>
               ) : (
-                positions.map((pos) => (
+                positions?.map((pos: PositionOfResponsibility) => (
                   <Card key={pos.posId} className="p-6 hover:shadow-lg transition-all duration-300 group">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">

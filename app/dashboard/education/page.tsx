@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useEducation } from "@/lib/hooks"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { EducationForm } from "@/components/education-form"
 import { EducationCard } from "@/components/education-card"
@@ -11,34 +12,21 @@ import { educationApi } from "@/lib/api"
 import type { Education } from "@/lib/db"
 
 export default function EducationPage() {
-  const [educations, setEducations] = useState<Education[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const { education: educations, isLoading: isEducationLoading, mutate } = useEducation()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingEducation, setEditingEducation] = useState<Education | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchEducations()
-  }, [])
-
-  const fetchEducations = async () => {
-    try {
-      const data = await educationApi.list()
-      setEducations(data || [])
-    } catch (error) {
-      console.error("Error fetching education:", error)
-    }
-  }
-
   const handleSubmit = async (data: any) => {
-    setIsLoading(true)
+    setIsSubmitting(true)
     try {
       await educationApi.create(data)
-      await fetchEducations()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error adding education:", error)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -46,7 +34,7 @@ export default function EducationPage() {
     setDeletingId(eduId)
     try {
       await educationApi.delete(eduId)
-      await fetchEducations()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error deleting education:", error)
     } finally {
@@ -62,7 +50,7 @@ export default function EducationPage() {
   const handleUpdate = async (eduId: string, data: any) => {
     try {
       await educationApi.update(eduId, data)
-      await fetchEducations()
+      await mutate() // Revalidate cache
     } catch (error) {
       console.error("Error updating education:", error)
       throw error
@@ -71,7 +59,7 @@ export default function EducationPage() {
 
   const handleBulkImport = async (items: any[]) => {
     const errors: string[] = []
-    
+
     for (const item of items) {
       try {
         await educationApi.create({
@@ -86,9 +74,9 @@ export default function EducationPage() {
         errors.push(`Failed to import "${item.institute}": ${error.message}`)
       }
     }
-    
-    await fetchEducations()
-    
+
+    await mutate() // Revalidate cache
+
     if (errors.length > 0) {
       throw new Error(`Imported with errors:\n${errors.join('\n')}`)
     }
@@ -133,17 +121,19 @@ export default function EducationPage() {
           <div className="lg:col-span-2">
             <Card className="p-6 mb-8">
               <h2 className="text-xl font-semibold mb-6">Add Education</h2>
-              <EducationForm onSubmit={handleSubmit} isLoading={isLoading} />
+              <EducationForm onSubmit={handleSubmit} isLoading={isSubmitting} />
             </Card>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Education ({educations.length})</h2>
-              {educations.length === 0 ? (
+              <h2 className="text-xl font-semibold">Your Education ({educations?.length || 0})</h2>
+              {isEducationLoading ? (
+                <div className="text-center p-8">Loading education...</div>
+              ) : educations?.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   <p>No education records yet. Add your academic details above!</p>
                 </Card>
               ) : (
-                educations.map((edu) => (
+                educations?.map((edu: Education) => (
                   <EducationCard
                     key={edu.eduId}
                     education={edu}
