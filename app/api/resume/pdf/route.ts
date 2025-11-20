@@ -7,8 +7,10 @@ import type { Browser } from 'puppeteer-core'
 type AnyObj = Record<string, any>
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const isDev = process.env.NODE_ENV === 'development'
+const isVercel = process.env.VERCEL === '1'
 
 export async function POST(req: Request) {
   let browser: Browser | null = null
@@ -39,8 +41,26 @@ export async function POST(req: Request) {
         headless: true,
         defaultViewport: { width: 816, height: 1056 },
       })
+    } else if (isVercel) {
+      // Vercel-specific chromium configuration
+      const executablePath = await chromium.executablePath('/tmp/chromium')
+      
+      browser = await puppeteerCore.launch({
+        args: [
+          ...chromium.args,
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-setuid-sandbox',
+          '--no-sandbox',
+          '--single-process',
+          '--no-zygote'
+        ],
+        defaultViewport: { width: 816, height: 1056 },
+        executablePath,
+        headless: true,
+      })
     } else {
-      // Use serverless chromium in production
+      // Fallback for other production environments
       const executablePath = await chromium.executablePath()
       browser = await puppeteerCore.launch({
         args: chromium.args,
